@@ -11,5 +11,4 @@ This tiny project aims to make a dashboard for displaying Github activities from
 - `index.html`: Embeddable page shell that wires the profile header, stat lines, and contribution calendars together.
 - `styles.css`: GitHub-inspired styling for the header, stacked avatars, stat lines, and contribution grid layout (desktop and mobile responsive tweaks included).
 - `app.js`: Vanilla JS that fetches GitHub data (profile + contributions), caches responses, builds the aligned month grid for current/previous year, and renders combined stats for `gradientwolf` and `oppenheimmer`.
-- `image.png`: Reference mock that illustrates the intended layout for the profile header and activity calendar.
 
