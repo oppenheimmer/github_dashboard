@@ -1,0 +1,481 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background-color: #ffffff;
+    color: #24292e;
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f6f8fa;
+    min-height: 100vh;
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    background-color: white;
+    padding: 20px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.profile-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.avatar-stack {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-width: 120px;
+}
+
+.avatar-stack .avatar {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    border: 2px solid #f6f8fa;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+.avatar-stack .avatar + .avatar {
+    margin-left: -18px;
+}
+
+.profile-info h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #24292e;
+    margin: 0;
+}
+
+.username {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: #586069;
+    font-size: 14px;
+    margin: 2px 0 8px 0;
+}
+
+.user-handle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.user-icon {
+    width: 16px;
+    height: 16px;
+    fill: #586069;
+    flex-shrink: 0;
+}
+
+.handle-text {
+    color: #24292e;
+    font-weight: 600;
+}
+
+.separator {
+    color: #6a737d;
+}
+
+.follow-info {
+    font-size: 14px;
+    color: #586069;
+    margin-bottom: 8px;
+}
+
+.stat-line {
+    display: grid;
+    grid-template-columns: 12ch 14px 18ch 18ch 20ch;
+    align-items: center;
+    column-gap: 14px;
+}
+
+.stat-text {
+    display: contents;
+}
+
+.stat-icon {
+    width: 16px;
+    height: 16px;
+    fill: #586069;
+    flex-shrink: 0;
+}
+
+.followers-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.followers-icon {
+    width: 20px;
+    height: 20px;
+    stroke: #586069;
+}
+
+.following-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.following-icon {
+    width: 20px;
+    height: 20px;
+    stroke: #586069;
+}
+
+.repos-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.repos-icon {
+    width: 20px;
+    height: 20px;
+    stroke: #586069;
+}
+
+.stat-user {
+    color: #24292e;
+    font-weight: 600;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.stat-marker {
+    color: #6a737d;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.stat-text strong {
+    font-weight: 600;
+    color: #24292e;
+}
+
+.bio {
+    font-size: 14px;
+    color: #24292e;
+    margin: 0;
+}
+
+.stacked-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.profile-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    gap: 8px;
+}
+
+.user-commit-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+.commit-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    background-color: #f6f8fa;
+    font-size: 12px;
+    min-width: 220px;
+}
+
+.commit-pill img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #e1e4e8;
+}
+
+.commit-pill .pill-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+}
+
+.pill-username {
+    font-weight: 600;
+    color: #24292e;
+}
+
+.activity-tooltip {
+    position: absolute;
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(140,149,159,0.2);
+    padding: 12px;
+    z-index: 1000;
+    min-width: 220px;
+    max-width: 260px;
+}
+
+.activity-tooltip .tooltip-title {
+    font-size: 12px;
+    color: #57606a;
+    margin-bottom: 8px;
+}
+
+.activity-tooltip .user-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.activity-tooltip .user-row:last-child {
+    margin-bottom: 0;
+}
+
+.activity-tooltip .user-row img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #e1e4e8;
+}
+
+.activity-tooltip .user-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    line-height: 1.2;
+}
+
+.activity-tooltip .user-meta .user-handle {
+    font-weight: 600;
+    color: #24292e;
+    font-size: 13px;
+}
+
+.activity-tooltip .user-meta .user-activity {
+    color: #57606a;
+    font-size: 12px;
+}
+
+.pill-role {
+    color: #57606a;
+}
+
+.pill-count {
+    font-weight: 600;
+    color: #24292e;
+}
+
+.contributions-section {
+    background-color: white;
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.all-years-container {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.year-section {
+    width: 100%;
+}
+
+.year-header {
+    font-size: 14px;
+    color: #24292e;
+    margin-bottom: 16px;
+    font-weight: 600;
+}
+
+.calendar-container {
+    overflow-x: auto;
+}
+
+.months-labels {
+    display: flex;
+    margin-bottom: 8px;
+    margin-left: 20px;
+    font-size: 12px;
+    color: #586069;
+}
+
+.months-labels .month-label {
+    text-align: left;
+    padding-left: 2px;
+    display: inline-block;
+}
+
+.calendar-grid {
+    display: flex;
+    gap: 3px;
+}
+
+.days-labels {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-right: 4px;
+}
+
+.days-labels span {
+    height: 10px;
+    font-size: 9px;
+    color: #959da5;
+    text-align: center;
+    line-height: 10px;
+    width: 10px;
+}
+
+.contribution-grid {
+    display: flex;
+    gap: 8px;
+    min-width: 800px;
+}
+
+.month-block {
+    display: grid;
+    grid-template-rows: repeat(7, 10px);
+    grid-auto-flow: column;
+    gap: 3px;
+    position: relative;
+}
+
+.month-block::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: #e1e4e8;
+}
+
+.month-block:last-child::after {
+    display: none;
+}
+
+.contribution-day {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    border: none;
+    transition: transform 0.1s ease;
+}
+
+.contribution-day.level-0 {
+    background-color: #ebedf0;
+}
+
+.contribution-day.level-1 {
+    background-color: #9be9a8;
+}
+
+.contribution-day.level-2 {
+    background-color: #40c463;
+}
+
+.contribution-day.level-3 {
+    background-color: #30a14e;
+}
+
+.contribution-day.level-4 {
+    background-color: #216e39;
+}
+
+.contribution-day:hover {
+    transform: scale(1.2);
+    outline: 1px solid rgba(27, 31, 35, 0.15);
+    outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+    .profile-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .profile-left {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .avatar-stack {
+        justify-content: center;
+    }
+
+    .profile-right {
+        align-items: center;
+        text-align: center;
+        width: 100%;
+    }
+
+    .user-commit-breakdown {
+        width: 100%;
+        align-items: stretch;
+    }
+
+    .commit-pill {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .contributions-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .contribution-grid {
+        gap: 4px;
+        min-width: 100%;
+        overflow-x: auto;
+    }
+    
+    .month-block {
+        gap: 2px;
+    }
+    
+    .contribution-day {
+        width: 8px;
+        height: 8px;
+    }
+    
+}

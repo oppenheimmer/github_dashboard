@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Activity Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="profile-header">
+            <div class="profile-left">
+                <div id="profile-avatar-stack" class="avatar-stack"></div>
+                <div class="profile-info">
+                    <p id="profile-username" class="username"></p>
+                    <div class="stacked-info">
+                        <div id="follow-info" class="follow-info"></div>
+                        <div id="following-info" class="follow-info"></div>
+                        <div id="repo-info" class="follow-info"></div>
+                        <p id="profile-bio" class="bio"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-right">
+                <div id="user-commit-breakdown" class="user-commit-breakdown"></div>
+            </div>
+        </div>
+
+        <div class="contributions-section">
+            <div id="all-years-container" class="all-years-container">
+                <!-- All years will be populated by JavaScript -->
+            </div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
