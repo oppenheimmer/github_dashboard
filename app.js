@@ -616,7 +616,7 @@ class GitHubDashboard {
                 
                 // Dim days outside current month
                 if (currentDate.getMonth() !== month) {
-                    dayElement.style.opacity = '0.3';
+                    dayElement.style.opacity = '0.2';
                 }
                 
                 dayElement.addEventListener('click', (event) => {
