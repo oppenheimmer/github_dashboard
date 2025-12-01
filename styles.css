@@ -218,6 +218,11 @@ body {
     height: 32px;
     border-radius: 50%;
     border: 1px solid #e1e4e8;
+    cursor: pointer;
+}
+
+.commit-pill a {
+    display: inline-block;
 }
 
 .commit-pill .pill-meta {
