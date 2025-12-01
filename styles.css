@@ -102,7 +102,7 @@ body {
 
 .stat-line {
     display: grid;
-    grid-template-columns: 12ch 14px 18ch 18ch 20ch;
+    grid-template-columns: 12ch 14px 18ch 18ch 20ch 18ch;
     align-items: center;
     column-gap: 14px;
 }
@@ -152,6 +152,19 @@ body {
     width: 20px;
     height: 20px;
     stroke: #586069;
+}
+
+.starred-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.starred-icon {
+    width: 15px;
+    height: 15px;
+    stroke: #586069;
+    fill: none;
 }
 
 .stat-user {

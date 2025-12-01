@@ -36,37 +36,60 @@ class GitHubDashboard {
             this.currentUsers = usernames;
 
             const profiles = [];
-            let rateLimited = false;
+            const query = `
+                query($user: String!) {
+                  user(login: $user) {
+                    login
+                    name
+                    avatarUrl
+                    bio
+                    followers {
+                      totalCount
+                    }
+                    following {
+                      totalCount
+                    }
+                    repositories(isFork: false, privacy: PUBLIC) {
+                      totalCount
+                    }
+                    starredRepositories {
+                      totalCount
+                    }
+                  }
+                }
+            `;
 
             for (const username of usernames) {
-                const userResponse = await this.fetchGitHubAPI(`https://api.github.com/users/${username}`);
-                
-                if (userResponse.status === 404) {
-                    this.showError(`User ${username} not found`);
-                    return;
-                }
-    
-                if (userResponse.status === 403) {
-                    console.warn(`Rate limit hit while fetching profile ${username}`);
-                    rateLimited = true;
+                const result = await this.fetchGraphQL(query, { user: username });
+
+                if (!result || !result.user) {
+                    this.showError(`User ${username} not found or GraphQL error`);
                     profiles.push({
                         login: username,
                         name: username,
                         followers: 0,
                         following: 0,
-                        bio: 'Rate limit hit. Add a GitHub token for full details.',
+                        public_repos: 0,
+                        starred_repos: 0,
+                        bio: `Could not load profile for ${username}.`,
                         avatar_url: ''
                     });
                     continue;
                 }
-    
-                if (!userResponse.ok) {
-                    this.showError(`GitHub API error: ${userResponse.status} ${userResponse.statusText}`);
-                    return;
-                }
-    
-                const userData = await userResponse.json();
-                profiles.push(userData);
+
+                const userData = result.user;
+                const transformedUserData = {
+                    login: userData.login,
+                    name: userData.name,
+                    avatar_url: userData.avatarUrl,
+                    bio: userData.bio,
+                    followers: userData.followers.totalCount,
+                    following: userData.following.totalCount,
+                    public_repos: userData.repositories.totalCount,
+                    starred_repos: userData.starredRepositories.totalCount
+                };
+
+                profiles.push(transformedUserData);
             }
 
             this.currentUserProfiles = profiles;
@@ -78,11 +101,6 @@ class GitHubDashboard {
             await this.generateAllYearsContribution(profiles);
             
             this.hideLoading();
-
-            if (rateLimited) {
-                const usernamesLine = profiles.map(user => user.login).join(' + ');
-                this.showContributionDataInfo(`${usernamesLine} (rate limited)`);
-            }
         } catch (error) {
             console.error('Error loading profile:', error);
             this.showError('Failed to load profile data. Check your internet connection and try again.');
@@ -145,6 +163,55 @@ class GitHubDashboard {
         }
     }
 
+    async fetchGraphQL(query, variables) {
+        if (!this.githubToken) {
+            console.warn('No GitHub token available for GraphQL fetch.');
+            return null;
+        }
+
+        const body = JSON.stringify({
+            query,
+            variables
+        });
+
+        try {
+            const cacheKey = `graphql:${JSON.stringify(variables)}`;
+            if (this.apiCache.has(cacheKey)) {
+                const cached = this.apiCache.get(cacheKey);
+                if (Date.now() - cached.timestamp < 300000) { // 5 minutes cache
+                    return cached.data;
+                }
+            }
+
+            const response = await fetch('https://api.github.com/graphql', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.githubToken}`
+                },
+                body
+            });
+
+            if (!response.ok) {
+                console.warn(`GraphQL fetch failed: ${response.status} ${response.statusText}`);
+                return null;
+            }
+
+            const result = await response.json();
+            if (result.errors) {
+                console.warn('GraphQL fetch errors:', result.errors);
+                return null;
+            }
+            
+            const data = result.data;
+            this.apiCache.set(cacheKey, { data, timestamp: Date.now() });
+            return data;
+        } catch (error) {
+            console.warn('GraphQL fetch error:', error);
+            return null;
+        }
+    }
+
     updateProfileInfo(usersData) {
         // Validate that usersData is a non-empty array of user objects
         if (!Array.isArray(usersData) || usersData.length === 0 || usersData.some(user => !user || !user.login)) {
@@ -198,13 +265,14 @@ class GitHubDashboard {
         }
 
         const buildStatLine = (user) => {
+            const formatStat = (value) => String(value || 0).padStart(2, '0');
             const followersIcon = `
                 <svg class="followers-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                     <circle cx="8" cy="5" r="2.1"></circle>
                     <path d="M4.2 11.3 Q 8 9.4 11.8 11.3 Q 10.9 8.8 8 8.8 Q 5.1 8.8 4.2 11.3Z"></path>
                 </svg>
             `;
-            const followers = `<span class="followers-meta">${followersIcon}<strong>${user.followers || 0}</strong> followers</span>`;
+            const followers = `<span class="followers-meta">${followersIcon}<strong>${formatStat(user.followers)}</strong> followers</span>`;
             const followingIcon = `
                 <svg class="following-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                     <circle cx="6" cy="5" r="2"></circle>
@@ -213,7 +281,7 @@ class GitHubDashboard {
                     <path d="M11.6 6.8L13.3 8.3L11.6 9.8"></path>
                 </svg>
             `;
-            const following = `<span class="following-meta">${followingIcon}<strong>${user.following || 0}</strong> following</span>`;
+            const following = `<span class="following-meta">${followingIcon}<strong>${formatStat(user.following)}</strong> following</span>`;
             const reposIcon = `
                 <svg class="repos-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                     <path d="M2.7 5.1L5.4 3.7L8 5.1L5.3 6.5L2.7 5.1Z"></path>
@@ -222,10 +290,16 @@ class GitHubDashboard {
                     <path d="M8 11.3V6.5"></path>
                 </svg>
             `;
-            const repos = `<span class="repos-meta">${reposIcon}<strong>${user.public_repos || 0}</strong> public repos</span>`;
+            const repos = `<span class="repos-meta">${reposIcon}<strong>${formatStat(user.public_repos)}</strong> public repos</span>`;
+            const starredIcon = `
+                <svg class="starred-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <path d="M8 1.3L9.6 5.8L14.5 6.2L11.2 9.8L12 14.7L8 12.3L4 14.7L4.8 9.8L1.5 6.2L6.4 5.8L8 1.3Z"></path>
+                </svg>
+            `;
+            const starred = `<span class="starred-meta">${starredIcon}<strong>${formatStat(user.starred_repos)}</strong> starred</span>`;
             const userTag = `<span class="stat-user">${user.login}</span>`;
             const marker = `<span class="stat-marker">&#x25C9;</span>`;
-            return `<span class="stat-text">${userTag}${marker}${followers}${following}${repos}</span>`;
+            return `<span class="stat-text">${userTag}${marker}${followers}${following}${repos}${starred}</span>`;
         };
 
         const summaries = usersData.map(buildStatLine);
@@ -916,57 +990,24 @@ class GitHubDashboard {
               }
             }
         `;
+        
+        const result = await this.fetchGraphQL(query, { user: username, from, to });
 
-        const body = JSON.stringify({
-            query,
-            variables: { user: username, from, to }
-        });
-
-        try {
-            const cacheKey = `graphql:${username}:${year}`;
-            if (this.apiCache.has(cacheKey)) {
-                const cached = this.apiCache.get(cacheKey);
-                if (Date.now() - cached.timestamp < 300000) {
-                    return cached.data;
-                }
-            }
-
-            const response = await fetch('https://api.github.com/graphql', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.githubToken}`
-                },
-                body
-            });
-
-            if (!response.ok) {
-                console.warn(`GraphQL contribution fetch failed: ${response.status} ${response.statusText}`);
-                return null;
-            }
-
-            const result = await response.json();
-            if (result.errors) {
-                console.warn('GraphQL contribution fetch errors:', result.errors);
-                return null;
-            }
-
-            const weeks = result?.data?.user?.contributionsCollection?.contributionCalendar?.weeks || [];
-            const contributionData = {};
-            weeks.forEach(week => {
-                week.contributionDays.forEach(day => {
-                    if (day.date) {
-                        contributionData[day.date] = day.contributionCount || 0;
-                    }
-                });
-            });
-
-            this.apiCache.set(cacheKey, { data: contributionData, timestamp: Date.now() });
-            return contributionData;
-        } catch (error) {
-            console.warn('GraphQL contribution fetch error:', error);
+        if (!result) {
             return null;
         }
+
+        const weeks = result?.user?.contributionsCollection?.contributionCalendar?.weeks || [];
+        const contributionData = {};
+        weeks.forEach(week => {
+            week.contributionDays.forEach(day => {
+                if (day.date) {
+                    contributionData[day.date] = day.contributionCount || 0;
+                }
+            });
+        });
+
+        return contributionData;
     }
 }
 
