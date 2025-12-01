@@ -260,13 +260,14 @@ class GitHubDashboard {
             const container = this.qs('#all-years-container');
             if (!container) return;
             container.innerHTML = '';
-            
+
             // Show loading message for contributions
             this.showContributionsLoading(container);
-            
+
             let totalContributions = 0;
             const perUserTotals = {};
-            
+            const yearsWithContributions = [];
+
             // Generate contribution calendar for each year
             for (const year of this.availableYears) {
                 const combinedContributionData = {};
@@ -281,23 +282,44 @@ class GitHubDashboard {
                 }
 
                 const combinedYearContributions = this.countContributions(combinedContributionData);
+
+                // Add to total contributions regardless of whether year will be displayed
                 totalContributions += combinedYearContributions;
-                
-                // Always render the year section (even if empty) so users can see the structure
-                this.renderYearSection(year, combinedContributionData, combinedYearContributions, container, usersData, perUserMaps);
+
+                // Only include year if there are contributions
+                if (combinedYearContributions > 0) {
+                    yearsWithContributions.push({
+                        year,
+                        combinedContributionData,
+                        combinedYearContributions,
+                        perUserMaps
+                    });
+                }
             }
-            
+
+            // Render only years with contributions
+            for (const yearData of yearsWithContributions) {
+                this.renderYearSection(
+                    yearData.year,
+                    yearData.combinedContributionData,
+                    yearData.combinedYearContributions,
+                    container,
+                    usersData,
+                    yearData.perUserMaps
+                );
+            }
+
             // Remove loading message
             this.hideContributionsLoading(container);
-            
+
             this.updateCommitBreakdown(usersData, perUserTotals, totalContributions);
-            
+
             // Show message if we couldn't get real data
             if (totalContributions === 0) {
                 const usernamesLine = usersData.map(user => user.login).join(' · ');
                 this.showContributionDataInfo(usernamesLine);
             }
-            
+
         } catch (error) {
             console.error('Error loading contributions:', error);
             this.renderEmptyYearSections();
