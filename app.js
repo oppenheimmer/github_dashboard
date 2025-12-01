@@ -512,9 +512,20 @@ class GitHubDashboard {
                 const pill = document.createElement('div');
                 pill.className = 'commit-pill';
 
+                // Create anchor element for the avatar to link to GitHub profile
+                const avatarLink = document.createElement('a');
+                avatarLink.href = `https://github.com/${user.login}`;
+                avatarLink.target = '_blank'; // Open in new tab
+                avatarLink.style.display = 'inline-block'; // Maintain proper styling
+
                 const avatar = document.createElement('img');
                 avatar.src = user.avatar_url || '';
                 avatar.alt = `${user.login} avatar`;
+
+                // Add cursor pointer to indicate it's clickable
+                avatar.style.cursor = 'pointer';
+
+                avatarLink.appendChild(avatar);
 
                 const meta = document.createElement('div');
                 meta.className = 'pill-meta';
@@ -535,7 +546,7 @@ class GitHubDashboard {
                 meta.appendChild(role);
                 meta.appendChild(count);
 
-                pill.appendChild(avatar);
+                pill.appendChild(avatarLink);
                 pill.appendChild(meta);
 
                 breakdown.appendChild(pill);
@@ -605,7 +616,7 @@ class GitHubDashboard {
                 
                 // Dim days outside current month
                 if (currentDate.getMonth() !== month) {
-                    dayElement.style.opacity = '0.3';
+                    dayElement.style.opacity = '0.2';
                 }
                 
                 dayElement.addEventListener('click', (event) => {
