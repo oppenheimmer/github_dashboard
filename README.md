@@ -5,7 +5,7 @@ Static web dashboard that combines activity data from two fixed GitHub accounts 
 ## Current State (as of 2026-03-06)
 
 - Runtime stack: plain `index.html` + `styles.css` + `app.js` (no build system).
-- Fixed users in code: `gradientwolf` (primary) and `oppenheimmer` (secondary).
+- Fixed users in code: `havebleu` and `oppenheimmer`.
 - Calendar years rendered: current year and previous year only.
 - Data source strategy: GitHub GraphQL first, REST fallback for commit estimation, then empty-data fallback.
 - The app is embeddable as a simple script/style include with no extra runtime config.
@@ -123,7 +123,7 @@ If fallback still finds no data, the app returns empty contribution data (no syn
 
 ## Configuration and Defaults
 
-- Default users: hardcoded to `gradientwolf`, `oppenheimmer`.
+- Default users: hardcoded to `havebleu`, `oppenheimmer`.
 - Default root: `document` (supports embedding into a host page context).
 - Available years: current + previous.
 - Cache TTL: 300000 ms (5 minutes).

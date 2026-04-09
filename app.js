@@ -9,7 +9,7 @@ class GitHubDashboard {
         const defaultTokenParts = ['ghp', '_v4uv7BK0RctqDkHJNJp', 'FmP1c4z1JEJ2VecqI'];
         this.githubToken = options.token || defaultTokenParts.join('');
         this.root = options.root || document;
-        this.defaultUsers = ['gradientwolf', 'oppenheimmer'];
+        this.defaultUsers = ['havebleu', 'oppenheimmer'];
         this.activeTooltip = null;
         this.init();
     }
