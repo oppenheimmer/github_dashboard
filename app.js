@@ -265,14 +265,14 @@ class GitHubDashboard {
         }
 
         const buildStatLine = (user) => {
-            const formatStat = (value) => String(value || 0).padStart(2, '0');
+            const formatStat = (value) => String(value || 0);
             const followersIcon = `
                 <svg class="followers-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                     <circle cx="8" cy="5" r="2.1"></circle>
                     <path d="M4.2 11.3 Q 8 9.4 11.8 11.3 Q 10.9 8.8 8 8.8 Q 5.1 8.8 4.2 11.3Z"></path>
                 </svg>
             `;
-            const followers = `<span class="followers-meta">${followersIcon}<strong>${formatStat(user.followers)}</strong> followers</span>`;
+            const followers = `<span class="followers-meta">${followersIcon}<strong class="stat-number">${formatStat(user.followers)}</strong> followers</span>`;
             const followingIcon = `
                 <svg class="following-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                     <circle cx="6" cy="5" r="2"></circle>
@@ -281,7 +281,7 @@ class GitHubDashboard {
                     <path d="M11.6 6.8L13.3 8.3L11.6 9.8"></path>
                 </svg>
             `;
-            const following = `<span class="following-meta">${followingIcon}<strong>${formatStat(user.following)}</strong> following</span>`;
+            const following = `<span class="following-meta">${followingIcon}<strong class="stat-number">${formatStat(user.following)}</strong> following</span>`;
             const reposIcon = `
                 <svg class="repos-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                     <path d="M2.7 5.1L5.4 3.7L8 5.1L5.3 6.5L2.7 5.1Z"></path>
@@ -290,13 +290,13 @@ class GitHubDashboard {
                     <path d="M8 11.3V6.5"></path>
                 </svg>
             `;
-            const repos = `<span class="repos-meta">${reposIcon}<strong>${formatStat(user.public_repos)}</strong> public repos</span>`;
+            const repos = `<span class="repos-meta">${reposIcon}<strong class="stat-number">${formatStat(user.public_repos)}</strong> public repos</span>`;
             const starredIcon = `
                 <svg class="starred-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                     <path d="M8 1.3L9.6 5.8L14.5 6.2L11.2 9.8L12 14.7L8 12.3L4 14.7L4.8 9.8L1.5 6.2L6.4 5.8L8 1.3Z"></path>
                 </svg>
             `;
-            const starred = `<span class="starred-meta">${starredIcon}<strong>${formatStat(user.starred_repos)}</strong> starred</span>`;
+            const starred = `<span class="starred-meta">${starredIcon}<strong class="stat-number">${formatStat(user.starred_repos)}</strong> starred</span>`;
             const userTag = `<span class="stat-user">${user.login}</span>`;
             const marker = `<span class="stat-marker">&#x25C9;</span>`;
             return `<span class="stat-text">${userTag}${marker}${followers}${following}${repos}${starred}</span>`;
@@ -307,13 +307,13 @@ class GitHubDashboard {
         if (followInfoEl) {
             followInfoEl.classList.add('stat-line');
             followInfoEl.innerHTML = summaries[0] || '';
-            followInfoEl.style.display = summaries[0] ? 'flex' : 'none';
+            followInfoEl.style.display = summaries[0] ? '' : 'none';
         }
 
         if (followingInfoEl) {
             followingInfoEl.classList.add('stat-line');
             followingInfoEl.innerHTML = summaries[1] || '';
-            followingInfoEl.style.display = summaries[1] ? 'flex' : 'none';
+            followingInfoEl.style.display = summaries[1] ? '' : 'none';
         }
 
         if (repoInfoEl) {
@@ -829,6 +829,7 @@ class GitHubDashboard {
         if (followInfoEl) {
             followInfoEl.textContent = 'Profile stats unavailable';
             followInfoEl.style.display = 'block';
+            followInfoEl.style.gridColumn = '1 / -1';
         }
         if (followingInfoEl) {
             followingInfoEl.textContent = '';

@@ -2,13 +2,14 @@
 
 Static web dashboard that combines activity data from two fixed GitHub accounts into a single profile header and contribution calendar view.
 
-## Current State (as of 2026-03-06)
+## Current State (as of 2026-04-10)
 
 - Runtime stack: plain `index.html` + `styles.css` + `app.js` (no build system).
 - Fixed users in code: `havebleu` and `oppenheimmer`.
 - Calendar years rendered: current year and previous year only.
 - Data source strategy: GitHub GraphQL first, REST fallback for commit estimation, then empty-data fallback.
 - The app is embeddable as a simple script/style include with no extra runtime config.
+- Per-user stat lines use a CSS grid with fixed column widths and 3-digit zero-padded numbers for robust tabular alignment.
 
 ## What the App Does Today
 
@@ -142,6 +143,21 @@ If fallback still finds no data, the app returns empty contribution data (no syn
 - Header layout uses right-side commit pills; it does not currently implement a single medium GitHub logo block in the left-side stacked stats area.
 - Contribution tooltip text currently hardcodes PR merged count as `0 PRs merged`.
 
+## Stat Line Alignment
+
+Both per-user stat rows share a single CSS grid on `.stacked-info`, ensuring columns align across rows. Each `.follow-info` / `.stat-line` / `.stat-text` uses `display: contents` so the inner spans (username, marker, followers, following, repos, starred) become direct grid children.
+
+| Column | Sizing | Content |
+| --- | --- | --- |
+| Username | `max-content` | monospace handle (e.g. `oppenheimmer`) |
+| Marker | `14px` | `◉` dot separator |
+| Followers | `auto` | icon + right-aligned number + label |
+| Following | `auto` | icon + right-aligned number + label |
+| Public repos | `auto` | icon + right-aligned number + label |
+| Starred | `auto` | icon + right-aligned number + label |
+
+Numbers use `.stat-number` (`min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums`) so values like `2` and `386` occupy the same width without leading zeros.
+
 ## Local Development
 
 No build step is required.
@@ -181,5 +197,5 @@ Then open `http://localhost:8000`.
 
 | Attribute | Value |
 | --- | --- |
-| Date of Revision | 2026-03-06 |
-| Revision Number | 0.2 |
+| Date of Revision | 2026-04-10 |
+| Revision Number | 0.3 |

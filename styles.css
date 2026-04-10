@@ -95,16 +95,13 @@ body {
 }
 
 .follow-info {
+    display: contents;
     font-size: 14px;
     color: #586069;
-    margin-bottom: 8px;
 }
 
 .stat-line {
-    display: grid;
-    grid-template-columns: 12ch 14px 18ch 18ch 20ch 18ch;
-    align-items: center;
-    column-gap: 14px;
+    display: contents;
 }
 
 .stat-text {
@@ -186,17 +183,27 @@ body {
     color: #24292e;
 }
 
+.stat-number {
+    display: inline-block;
+    min-width: 3ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
 .bio {
+    grid-column: 1 / -1;
     font-size: 14px;
     color: #24292e;
     margin: 0;
 }
 
 .stacked-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: grid;
+    grid-template-columns: max-content 14px repeat(4, auto);
+    column-gap: 14px;
+    row-gap: 8px;
     margin-top: 6px;
+    align-items: center;
 }
 
 .profile-right {
