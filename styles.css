@@ -100,19 +100,8 @@ body {
     color: #586069;
 }
 
-.stat-line {
-    display: contents;
-}
-
 .stat-text {
     display: contents;
-}
-
-.stat-icon {
-    width: 16px;
-    height: 16px;
-    fill: #586069;
-    flex-shrink: 0;
 }
 
 .followers-meta {
@@ -480,12 +469,6 @@ body {
     .commit-pill {
         width: 100%;
         justify-content: center;
-    }
-    
-    .contributions-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
     }
     
     .contribution-grid {

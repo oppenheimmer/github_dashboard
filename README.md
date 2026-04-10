@@ -9,7 +9,7 @@ Static web dashboard that combines activity data from two fixed GitHub accounts 
 - Calendar years rendered: current year and previous year only.
 - Data source strategy: GitHub GraphQL first, REST fallback for commit estimation, then empty-data fallback.
 - The app is embeddable as a simple script/style include with no extra runtime config.
-- Per-user stat lines use a CSS grid with fixed column widths and 3-digit zero-padded numbers for robust tabular alignment.
+- Per-user stat lines share a single CSS grid with right-aligned tabular numbers for robust column alignment.
 
 ## What the App Does Today
 
@@ -28,7 +28,7 @@ Static web dashboard that combines activity data from two fixed GitHub accounts 
   - Page shell with:
     - `.profile-header` split into `.profile-left` and `.profile-right`
     - `#profile-avatar-stack`, `#profile-username`
-    - stat containers: `#follow-info`, `#following-info`, `#repo-info`
+    - stat containers: `#follow-info`, `#following-info`
     - `#profile-bio`
     - `#user-commit-breakdown`
     - contributions root: `#all-years-container`
@@ -132,20 +132,13 @@ If fallback still finds no data, the app returns empty contribution data (no syn
 
 ## Known Gaps / Mismatches in Current Implementation
 
-- `app.js` references several DOM IDs that are not present in current `index.html`:
-  - `#profile-name`
-  - `#load-profile`
-  - `#commits-count`
-  - `#current-year`
-  - `#contribution-grid` (fallback path only)
-- Some loading/error helpers silently no-op because related elements do not exist.
 - Username display in header currently renders raw handles (without `@` prefix).
 - Header layout uses right-side commit pills; it does not currently implement a single medium GitHub logo block in the left-side stacked stats area.
 - Contribution tooltip text currently hardcodes PR merged count as `0 PRs merged`.
 
 ## Stat Line Alignment
 
-Both per-user stat rows share a single CSS grid on `.stacked-info`, ensuring columns align across rows. Each `.follow-info` / `.stat-line` / `.stat-text` uses `display: contents` so the inner spans (username, marker, followers, following, repos, starred) become direct grid children.
+Both per-user stat rows share a single CSS grid on `.stacked-info`, ensuring columns align across rows. Each `.follow-info` / `.stat-text` uses `display: contents` so the inner spans (username, marker, followers, following, repos, starred) become direct grid children.
 
 | Column | Sizing | Content |
 | --- | --- | --- |
@@ -198,4 +191,4 @@ Then open `http://localhost:8000`.
 | Attribute | Value |
 | --- | --- |
 | Date of Revision | 2026-04-10 |
-| Revision Number | 0.3 |
+| Revision Number | 0.4 |

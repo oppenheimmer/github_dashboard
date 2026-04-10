@@ -149,7 +149,6 @@ class GitHubDashboard {
                 }
             }
 
-            console.log(`API call to ${url}: ${response.status} ${response.statusText}`);
             return response;
         } catch (error) {
             console.error('API fetch error:', error);
@@ -221,11 +220,9 @@ class GitHubDashboard {
         }
 
         const avatarStack = this.qs('#profile-avatar-stack');
-        const profileNameEl = this.qs('#profile-name');
         const profileUsernameEl = this.qs('#profile-username');
         const followInfoEl = this.qs('#follow-info');
         const followingInfoEl = this.qs('#following-info');
-        const repoInfoEl = this.qs('#repo-info');
         const bioEl = this.qs('#profile-bio');
 
         if (avatarStack) {
@@ -254,12 +251,6 @@ class GitHubDashboard {
         const usernamesLine = usersData
             .map(user => `<span class="user-handle">${githubIconSvg}<span class="handle-text">${user.login}</span></span>`)
             .join('<span class="separator">·</span>');
-        if (profileNameEl) {
-            profileNameEl.textContent = usersData.length === 1
-                ? (usersData[0].name || usersData[0].login)
-                : 'GitHub Activity Dashboard';
-        }
-
         if (profileUsernameEl) {
             profileUsernameEl.innerHTML = usernamesLine;
         }
@@ -305,21 +296,13 @@ class GitHubDashboard {
         const summaries = usersData.map(buildStatLine);
 
         if (followInfoEl) {
-            followInfoEl.classList.add('stat-line');
             followInfoEl.innerHTML = summaries[0] || '';
             followInfoEl.style.display = summaries[0] ? '' : 'none';
         }
 
         if (followingInfoEl) {
-            followingInfoEl.classList.add('stat-line');
             followingInfoEl.innerHTML = summaries[1] || '';
             followingInfoEl.style.display = summaries[1] ? '' : 'none';
-        }
-
-        if (repoInfoEl) {
-            repoInfoEl.classList.add('stat-line');
-            repoInfoEl.innerHTML = '';
-            repoInfoEl.style.display = 'none';
         }
 
         if (bioEl) {
@@ -401,8 +384,6 @@ class GitHubDashboard {
     }
 
     async fetchRealContributionData(username, year) {
-        console.log(`Fetching contribution data for ${username}, year ${year}`);
-        
         try {
             // Prefer GraphQL contributions calendar for accurate per-day counts
             const graphQLData = await this.fetchContributionCalendarFromGraphQL(username, year);
@@ -415,20 +396,18 @@ class GitHubDashboard {
             
             if (reposResponse.status === 403) {
                 console.warn(`GitHub API rate limit exceeded while fetching repos for ${username}`);
-                return this.generateFallbackData(username, year);
+                return {};
             }
 
             if (!reposResponse.ok) {
                 console.warn(`Failed to fetch repos for ${username}: ${reposResponse.status} ${reposResponse.statusText}`);
-                return this.generateFallbackData(username, year);
+                return {};
             }
 
             const repos = await reposResponse.json();
-            console.log(`Found ${repos.length} repositories for ${username}`);
             
             if (!Array.isArray(repos) || repos.length === 0) {
-                console.log(`No repositories found for ${username} - returning empty data (not fake data)`);
-                return this.generateFallbackData(username, year);
+                return {};
             }
             
             const contributionData = {};
@@ -436,7 +415,6 @@ class GitHubDashboard {
             
             // Process a limited number of repositories to avoid rate limiting
             const reposToProcess = repos.slice(0, 5);
-            console.log(`Processing ${reposToProcess.length} repositories`);
             
             for (const repo of reposToProcess) {
                 try {
@@ -449,7 +427,6 @@ class GitHubDashboard {
                     
                     if (commitsResponse.ok) {
                         const commits = await commitsResponse.json();
-                        console.log(`Found ${commits.length} commits in ${repo.name} for ${year}`);
                         
                         commits.forEach(commit => {
                             if (commit.commit && commit.commit.author && commit.commit.author.date) {
@@ -473,19 +450,16 @@ class GitHubDashboard {
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
             
-            console.log(`Total commits found for ${year}: ${totalCommits}`);
-            
             // If we found some real data, return it
             if (totalCommits > 0) {
                 return contributionData;
             }
             
-            // Otherwise, generate realistic fallback data
-            return this.generateFallbackData(username, year);
+            return {};
             
         } catch (error) {
             console.error('Error fetching real contribution data:', error);
-            return this.generateFallbackData(username, year);
+            return {};
         }
     }
 
@@ -497,18 +471,6 @@ class GitHubDashboard {
 
     countContributions(contributionData) {
         return Object.values(contributionData).reduce((sum, count) => sum + count, 0);
-    }
-
-    generateFallbackData(username, year) {
-        console.log(`API data unavailable for ${username}, year ${year} - returning empty contribution data instead of fake data`);
-        
-        // Return empty contribution data instead of generating fake data
-        // This ensures users see accurate representation when real data isn't available
-        const contributionData = {};
-        
-        console.log(`Returned empty contribution data for ${year} (no fake data generated)`);
-        
-        return contributionData;
     }
 
     renderYearSection(year, contributionData, totalContributions, container, usersData = [], perUserMaps = {}) {
@@ -586,18 +548,13 @@ class GitHubDashboard {
                 const pill = document.createElement('div');
                 pill.className = 'commit-pill';
 
-                // Create anchor element for the avatar to link to GitHub profile
                 const avatarLink = document.createElement('a');
                 avatarLink.href = `https://github.com/${user.login}`;
-                avatarLink.target = '_blank'; // Open in new tab
-                avatarLink.style.display = 'inline-block'; // Maintain proper styling
+                avatarLink.target = '_blank';
 
                 const avatar = document.createElement('img');
                 avatar.src = user.avatar_url || '';
                 avatar.alt = `${user.login} avatar`;
-
-                // Add cursor pointer to indicate it's clickable
-                avatar.style.cursor = 'pointer';
 
                 avatarLink.appendChild(avatar);
 
@@ -627,27 +584,9 @@ class GitHubDashboard {
             });
         }
 
-        const commitsCountEl = this.qs('#commits-count');
-        if (commitsCountEl) {
-            commitsCountEl.textContent = totalContributions;
-        }
-
-        const currentYearEl = this.qs('#current-year');
-        if (currentYearEl) {
-            currentYearEl.textContent = this.currentYear;
-        }
-
     }
 
-    // Remove the old fake data generation methods since we now use real data
-
     renderContributionGridByMonths(contributionData, grid, year, usersData = [], perUserMaps = {}) {
-        if (!grid) {
-            grid = this.qs('#contribution-grid');
-        }
-        if (!year) {
-            year = this.currentYear;
-        }
         
         grid.innerHTML = '';
         
@@ -710,11 +649,6 @@ class GitHubDashboard {
         }
     }
 
-    renderContributionGrid(contributionData) {
-        // Keep the old method for compatibility
-        this.renderContributionGridByMonths(contributionData);
-    }
-
     renderEmptyYearSections() {
         const container = this.qs('#all-years-container');
         container.innerHTML = '';
@@ -723,18 +657,6 @@ class GitHubDashboard {
         const contributionData = {};
         this.renderYearSection(this.currentYear, contributionData, 0, container, this.currentUserProfiles, {});
         
-        const commitsCountEl = this.qs('#commits-count');
-        if (commitsCountEl) {
-            commitsCountEl.textContent = '0';
-        }
-    }
-
-    getYearStartDate(year) {
-        const jan1 = new Date(year, 0, 1);
-        const dayOfWeek = jan1.getDay();
-        const startDate = new Date(jan1);
-        startDate.setDate(jan1.getDate() - dayOfWeek);
-        return startDate;
     }
 
     getContributionLevel(count) {
@@ -793,21 +715,9 @@ class GitHubDashboard {
         return `${lines.join('\n')}\n${dateStr}`;
     }
 
-    showLoading() {
-        const button = this.qs('#load-profile');
-        if (button) {
-            button.textContent = 'Loading...';
-            button.disabled = true;
-        }
-    }
+    showLoading() {}
 
-    hideLoading() {
-        const button = this.qs('#load-profile');
-        if (button) {
-            button.textContent = 'Load Profiles';
-            button.disabled = false;
-        }
-    }
+    hideLoading() {}
 
     showError(message) {
         alert(message);
@@ -816,15 +726,12 @@ class GitHubDashboard {
 
     showProfileError(message) {
         // Display error in profile section instead of generic alert
-        const nameEl = this.qs('#profile-name');
         const usernameEl = this.qs('#profile-username');
         const followInfoEl = this.qs('#follow-info');
         const followingInfoEl = this.qs('#following-info');
-        const repoInfoEl = this.qs('#repo-info');
         const bioEl = this.qs('#profile-bio');
         const avatarStack = this.qs('#profile-avatar-stack');
 
-        if (nameEl) nameEl.textContent = 'Error loading profile';
         if (usernameEl) usernameEl.textContent = 'unknown';
         if (followInfoEl) {
             followInfoEl.textContent = 'Profile stats unavailable';
@@ -834,10 +741,6 @@ class GitHubDashboard {
         if (followingInfoEl) {
             followingInfoEl.textContent = '';
             followingInfoEl.style.display = 'none';
-        }
-        if (repoInfoEl) {
-            repoInfoEl.textContent = '';
-            repoInfoEl.style.display = 'none';
         }
         if (bioEl) bioEl.textContent = message;
         if (avatarStack) avatarStack.innerHTML = '';
