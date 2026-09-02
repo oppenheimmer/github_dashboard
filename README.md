@@ -2,13 +2,23 @@
 
 Static web dashboard that combines activity data from two fixed GitHub accounts into a single profile header and contribution calendar view.
 
-## Current State (as of 2026-04-10)
+## Current State (as of 2026-09-02)
 
-- Runtime stack: plain `index.html` + `styles.css` + `app.js` (no build system).
+- Runtime stack: plain `index.html` + `styles.css` + `app.js`, plus
+  `server.js` — a dependency-free Node script that serves the static files
+  and a `/api/github` proxy for authenticated data.
 - Fixed users in code: `havebleu` and `oppenheimmer`.
 - Calendar years rendered: current year and previous year only.
-- Data source strategy: GitHub GraphQL first, REST fallback for commit estimation, then empty-data fallback.
-- The app is embeddable as a simple script/style include with no extra runtime config.
+- Data source strategy: GitHub GraphQL via the `/api/github` proxy first, REST
+  fallback (unauthenticated) for commit estimation, then empty-data fallback.
+- No GitHub credential lives in client-side code. `app.js` embedded a classic
+  PAT (split into string parts to dodge secret scanners) up to revision 0.4;
+  that token was exposed while the repo was public and is permanently revoked.
+  See "Authentication" below.
+- The app is embeddable as a script/style include; embedders either run
+  `server.js` (or an equivalent that reads `GITHUB_TOKEN` from `.env.local`
+  and answers `/api/github`) alongside it, or pass a custom `apiBase` (see
+  "Configuration and Defaults").
 - Per-user stat lines share a single CSS grid with right-aligned tabular numbers for robust column alignment.
 
 ## What the App Does Today
@@ -39,17 +49,25 @@ Static web dashboard that combines activity data from two fixed GitHub accounts 
 - `app.js`
   - `GitHubDashboard` class handling data fetch, aggregation, rendering, cache, and interactions.
   - Initializes automatically on `DOMContentLoaded`.
+- `server.js`
+  - Plain Node (`http`/`fs`, no dependencies) local server: serves the static
+    files and answers `/api/github`.
+  - Reads `GITHUB_TOKEN` by parsing `.env.local` directly at request time —
+    never via `process.env` or a hosting dashboard.
+  - Validates `type`/`user`/`year` and only ever runs the two fixed queries
+    below (not an open GraphQL relay); allowlists the same two fixed users as
+    `app.js`.
 
 ## Runtime Flow
 
 1. `DOMContentLoaded` creates `new GitHubDashboard()`.
-2. Constructor sets defaults (year, users, token, cache, root).
+2. Constructor sets defaults (year, users, `apiBase`, cache, root).
 3. `init()`:
    - computes available years (`[currentYear, currentYear - 1]`)
    - calls `loadProfiles(defaultUsers)`
    - registers global click listener for tooltip dismissal.
 4. `loadProfiles()`:
-   - fetches profile details via GraphQL per user
+   - fetches profile details via the `/api/github` proxy per user
    - transforms data to local shape
    - updates header UI
    - triggers contribution generation for all available years.
@@ -63,15 +81,16 @@ Static web dashboard that combines activity data from two fixed GitHub accounts 
 
 ### Profile Data (GraphQL)
 
-- Endpoint: `https://api.github.com/graphql`
+- Endpoint: `/api/github?type=profile&user=<login>`, proxied server-side to `https://api.github.com/graphql`.
 - Queried fields include:
   - `login`, `name`, `avatarUrl`, `bio`
   - follower/following totals
   - public non-fork repo count
   - starred repo count
 
-### Contribution Data (GraphQL first)
+### Contribution Data (proxy first)
 
+- Endpoint: `/api/github?type=contributions&user=<login>&year=<yyyy>`.
 - Preferred source: `contributionsCollection(...).contributionCalendar.weeks[].contributionDays[]`.
 - Date range is full calendar year: `YYYY-01-01T00:00:00Z` to `YYYY-12-31T23:59:59Z`.
 
@@ -89,8 +108,19 @@ If fallback still finds no data, the app returns empty contribution data (no syn
 
 ### Authentication
 
-- A default personal access token is embedded in `app.js` as split string parts and joined at runtime.
-- GraphQL fetches require token presence; REST requests include auth header if token exists.
+- No credential lives in client-side code. `app.js` calls `fetchFromProxy()`,
+  which hits `apiBase` (default `/api/github`) — a route answered by
+  `server.js`, which reads the token straight out of `GITHUB_TOKEN` in
+  `.env.local` on disk (not `process.env`, not a hosting-platform dashboard)
+  and forwards only the two fixed, parameter-validated queries above.
+- REST fallback requests (repos/commits, used only when the proxy call fails)
+  are unauthenticated and subject to GitHub's 60 requests/hour anonymous limit.
+- **History:** through revision 0.4, `app.js` embedded a classic PAT split
+  into string parts (to reduce secret-scanner hits) and sent it directly from
+  the browser. That token was exposed while the repo was public; it must be
+  treated as permanently leaked and is not reused anywhere. Never reintroduce
+  a credential into client-side code, and never re-split a secret to dodge
+  scanners.
 
 ### Caching
 
@@ -124,11 +154,12 @@ If fallback still finds no data, the app returns empty contribution data (no syn
 
 ## Configuration and Defaults
 
-- Default users: hardcoded to `havebleu`, `oppenheimmer`.
+- Default users: hardcoded to `havebleu`, `oppenheimmer` (also allowlisted in `server.js`).
 - Default root: `document` (supports embedding into a host page context).
+- Default `apiBase`: `/api/github`; pass `{ apiBase }` to `new GitHubDashboard()` to point at a different proxy.
 - Available years: current + previous.
 - Cache TTL: 300000 ms (5 minutes).
-- No environment variable loader; token and behavior are code-driven.
+- `GITHUB_TOKEN`: a single line in `.env.local` (`GITHUB_TOKEN=ghp_...`), read directly from that file by `server.js` on every request. Never set client-side, never committed (`.env.local` is gitignored), and never promoted into an OS/platform environment variable.
 
 ## Known Gaps / Mismatches in Current Implementation
 
@@ -153,36 +184,56 @@ Numbers use `.stat-number` (`min-width: 3ch; text-align: right; font-variant-num
 
 ## Local Development
 
-No build step is required.
+No build step and no `npm install` — `server.js` uses only Node's built-in
+`http`/`fs` modules (requires Node 18+ for global `fetch`).
 
-Option 1:
+Option 1 (recommended, exercises the proxy):
 
-- Open `index.html` directly in a browser.
+```bash
+echo 'GITHUB_TOKEN=ghp_your_token_here' >> .env.local
+node server.js        # http://localhost:8000
+node server.js 3000    # or pick a different port
+```
 
-Option 2 (recommended):
+`.env.local` is gitignored, so the token never gets committed. `server.js`
+re-reads the file on every `/api/github` request, so editing the token does
+not require restarting the process.
+
+Option 2 (static only, degraded data):
 
 ```bash
 python -m http.server 8000
 ```
 
-Then open `http://localhost:8000`.
+`/api/github` will 404 under a plain static server (it has no code to run),
+so the dashboard falls back to unauthenticated REST (60 req/hr).
 
 ## Deployment / Embedding Notes
 
+- Run `server.js` (or an equivalent process) anywhere that has Node and a
+  `.env.local` file containing `GITHUB_TOKEN` alongside the code — a VPS,
+  container, or any always-on host. This deliberately does not target
+  serverless/edge platforms: those don't ship `.env.local` to the running
+  function, and the whole point of this setup is that the token lives only in
+  that file, never in a platform's environment-variable configuration.
 - Designed as a static embeddable module:
   - include `styles.css`
   - include `app.js`
   - ensure required DOM structure from `index.html` exists in host page.
+  - either run `server.js` (or equivalent) at `/api/github` on the same
+    origin, or pass `{ apiBase: '<url>' }` to `new GitHubDashboard()` to point
+    at an existing proxy (see `server.js` in this repo for the reference
+    implementation).
 - No bundler, package manager, or compile step is required.
 
 ## Troubleshooting
 
 - Empty contribution years:
-  - verify token validity and rate limits
+  - verify `GITHUB_TOKEN=...` is present in `.env.local` and `/api/github` returns 200 (503 means `server.js` couldn't find/parse the line; check the console log it prints on startup)
   - check whether users have contribution data for that year
-  - inspect browser console for GraphQL/REST failures.
+  - inspect browser console for proxy/REST failures (errors are logged, not shown as `alert()` popups).
 - Unexpected zero commit totals:
-  - GraphQL may fail and REST fallback may not find commits in first 5 repos.
+  - the proxy call may fail and REST fallback may not find commits in first 5 repos.
 - Tooltip not shown:
   - tooltip appears only when clicked day has non-zero contribution count.
 
@@ -190,5 +241,5 @@ Then open `http://localhost:8000`.
 
 | Attribute | Value |
 | --- | --- |
-| Date of Revision | 2026-04-10 |
-| Revision Number | 0.4 |
+| Date of Revision | 2026-09-02 |
+| Revision Number | 0.6 |

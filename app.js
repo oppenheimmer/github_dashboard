@@ -1,3 +1,8 @@
+// No client-side GitHub token: GraphQL data comes through the /api/github
+// proxy (see server.js), which reads the token from GITHUB_TOKEN in
+// .env.local on the server side. Embedders that host this script without
+// that endpoint can pass a custom `apiBase` option, or the dashboard falls
+// back to unauthenticated REST (60 req/hr, degraded data).
 class GitHubDashboard {
     constructor(options = {}) {
         this.currentYear = new Date().getFullYear();
@@ -5,9 +10,7 @@ class GitHubDashboard {
         this.availableYears = [];
         this.currentUsers = [];
         this.currentUserProfiles = [];
-        // Token is split to reduce secret-scanner noise while keeping default auth
-        const defaultTokenParts = ['ghp', '_v4uv7BK0RctqDkHJNJp', 'FmP1c4z1JEJ2VecqI'];
-        this.githubToken = options.token || defaultTokenParts.join('');
+        this.apiBase = options.apiBase || '/api/github';
         this.root = options.root || document;
         this.defaultUsers = ['havebleu', 'oppenheimmer'];
         this.activeTooltip = null;
@@ -36,34 +39,12 @@ class GitHubDashboard {
             this.currentUsers = usernames;
 
             const profiles = [];
-            const query = `
-                query($user: String!) {
-                  user(login: $user) {
-                    login
-                    name
-                    avatarUrl
-                    bio
-                    followers {
-                      totalCount
-                    }
-                    following {
-                      totalCount
-                    }
-                    repositories(isFork: false, privacy: PUBLIC) {
-                      totalCount
-                    }
-                    starredRepositories {
-                      totalCount
-                    }
-                  }
-                }
-            `;
 
             for (const username of usernames) {
-                const result = await this.fetchGraphQL(query, { user: username });
+                const result = await this.fetchFromProxy({ type: 'profile', user: username });
 
                 if (!result || !result.user) {
-                    this.showError(`User ${username} not found or GraphQL error`);
+                    this.showError(`User ${username} not found or proxy error`);
                     profiles.push({
                         login: username,
                         name: username,
@@ -122,15 +103,11 @@ class GitHubDashboard {
         }
 
         try {
+            // Unauthenticated REST fallback (60 requests/hour); the primary
+            // data path is the authenticated proxy in fetchFromProxy
             const headers = {
-                'Accept': 'application/vnd.github.v3+json',
-                'User-Agent': 'GitHub-Dashboard-App'
+                'Accept': 'application/vnd.github.v3+json'
             };
-
-            // Add authorization header if token is provided
-            if (this.githubToken) {
-                headers['Authorization'] = `token ${this.githubToken}`;
-            }
 
             const response = await fetch(url, { headers });
 
@@ -162,51 +139,31 @@ class GitHubDashboard {
         }
     }
 
-    async fetchGraphQL(query, variables) {
-        if (!this.githubToken) {
-            console.warn('No GitHub token available for GraphQL fetch.');
-            return null;
-        }
-
-        const body = JSON.stringify({
-            query,
-            variables
-        });
+    async fetchFromProxy(params) {
+        const url = `${this.apiBase}?${new URLSearchParams(params)}`;
 
         try {
-            const cacheKey = `graphql:${JSON.stringify(variables)}`;
-            if (this.apiCache.has(cacheKey)) {
-                const cached = this.apiCache.get(cacheKey);
+            if (this.apiCache.has(url)) {
+                const cached = this.apiCache.get(url);
                 if (Date.now() - cached.timestamp < 300000) { // 5 minutes cache
                     return cached.data;
                 }
             }
 
-            const response = await fetch('https://api.github.com/graphql', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.githubToken}`
-                },
-                body
+            const response = await fetch(url, {
+                headers: { 'Accept': 'application/json' }
             });
 
             if (!response.ok) {
-                console.warn(`GraphQL fetch failed: ${response.status} ${response.statusText}`);
+                console.warn(`Proxy fetch failed: ${response.status} ${response.statusText}`);
                 return null;
             }
 
-            const result = await response.json();
-            if (result.errors) {
-                console.warn('GraphQL fetch errors:', result.errors);
-                return null;
-            }
-            
-            const data = result.data;
-            this.apiCache.set(cacheKey, { data, timestamp: Date.now() });
+            const data = await response.json();
+            this.apiCache.set(url, { data, timestamp: Date.now() });
             return data;
         } catch (error) {
-            console.warn('GraphQL fetch error:', error);
+            console.warn('Proxy fetch error:', error);
             return null;
         }
     }
@@ -385,10 +342,10 @@ class GitHubDashboard {
 
     async fetchRealContributionData(username, year) {
         try {
-            // Prefer GraphQL contributions calendar for accurate per-day counts
-            const graphQLData = await this.fetchContributionCalendarFromGraphQL(username, year);
-            if (graphQLData) {
-                return graphQLData;
+            // Prefer the proxied contributions calendar for accurate per-day counts
+            const calendarData = await this.fetchContributionCalendar(username, year);
+            if (calendarData) {
+                return calendarData;
             }
 
             // First try to get repositories
@@ -720,7 +677,7 @@ class GitHubDashboard {
     hideLoading() {}
 
     showError(message) {
-        alert(message);
+        console.warn(message);
         this.hideLoading();
     }
 
@@ -765,13 +722,12 @@ class GitHubDashboard {
         infoDiv.innerHTML = `
             <strong>⚠️ No contribution data found</strong><br>
             This could be because:<br>
-            • The GitHub API rate limit has been exceeded (60 requests/hour without token)<br>
-            • The user has no public repositories<br>
-            • The repositories don't contain commits in the selected time range<br>
+            • The /api/github proxy is unavailable (e.g. running via "python -m http.server" instead of "node server.js")<br>
+            • The GitHub API rate limit has been exceeded<br>
+            • The user has no public contributions in the selected time range<br>
             <br>
             <strong>💡 To see more accurate data:</strong><br>
-            • Requests already include a GitHub token, but you may still hit rate limits; retry after a short wait<br>
-            • Ensure the repositories are public or the token has appropriate permissions
+            Data usually recovers on its own; retry after a short wait.
         `;
         container.insertBefore(infoDiv, container.firstChild);
     }
@@ -870,32 +826,8 @@ class GitHubDashboard {
         }
     }
 
-    async fetchContributionCalendarFromGraphQL(username, year) {
-        if (!this.githubToken) {
-            console.warn('No GitHub token available for GraphQL contributions fetch.');
-            return null;
-        }
-
-        const from = `${year}-01-01T00:00:00Z`;
-        const to = `${year}-12-31T23:59:59Z`;
-        const query = `
-            query($user: String!, $from: DateTime!, $to: DateTime!) {
-              user(login: $user) {
-                contributionsCollection(from: $from, to: $to) {
-                  contributionCalendar {
-                    weeks {
-                      contributionDays {
-                        date
-                        contributionCount
-                      }
-                    }
-                  }
-                }
-              }
-            }
-        `;
-        
-        const result = await this.fetchGraphQL(query, { user: username, from, to });
+    async fetchContributionCalendar(username, year) {
+        const result = await this.fetchFromProxy({ type: 'contributions', user: username, year });
 
         if (!result) {
             return null;
